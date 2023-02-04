@@ -48,41 +48,42 @@
                  ,@(when temperature
                      (list (cons "temperature" temperature))))))
     (request
-     url
-     :type "POST"
-     :headers headers
-     :data (json-encode data)
-     :parser 'json-read
-     :success callback
-     :error (cl-function
-             (lambda (&key error-thrown &allow-other-keys)
-               (message "Error: %S" error-thrown))))))
+      url
+      :type "POST"
+      :headers headers
+      :data (json-encode data)
+      :parser 'json-read
+      :success callback
+      :error (cl-function
+              (lambda (&key error-thrown &allow-other-keys)
+                (message "Error: %S" error-thrown))))))
 
 (defun gpt-elisp-edit-generic (model instruction &optional autosave)
   "Call the GPT-3 command with the selected text or the region before the cursor."
   (if (not (minibufferp))
-    (setq gpt-current-buffer (current-buffer)))
-  (with-current-buffer gpt-current-buffer (let ((selected-text (if (use-region-p)
-                           (buffer-substring-no-properties (region-beginning) (region-end))
-                         (buffer-string)))
-        (initial-point (point))
-        (used-region (use-region-p))
-        (region-beginning-saved (if (use-region-p) (region-beginning) nil))
-        (region-end-saved (if (use-region-p) (region-end) nil))
-        (point-max-saved (point-max))
-        (point-min-saved (point-min))
-        (original-buffer (current-buffer)))
-                      (cl-function (lambda (&key data &allow-other-keys)
-                                   (let ((choice (aref (cdr (assoc 'choices data)) 0)))
-                                     (with-current-buffer gpt-current-buffer  ; Switch to the original buffer
-                                         (if used-region
-                                             (delete-region region-beginning-saved region-end-saved)
-                                           (delete-region point-min-saved point-max-saved))
-                                         (insert (concat (cdr (assoc 'text choice))))
-                                         (if autosave
-                                             (save-buffer))
-                                         (goto-char (point-max)))))) 0))))
+      (setq gpt-current-buffer (current-buffer)))
+  (with-current-buffer gpt-current-buffer
+    (let ((selected-text (if (use-region-p)
+                             (buffer-substring-no-properties (region-beginning) (region-end))
+                           (buffer-string)))
+          (initial-point (point))
+          (used-region (use-region-p))
+          (region-beginning-saved (if (use-region-p) (region-beginning) nil))
+          (region-end-saved (if (use-region-p) (region-end) nil))
+          (point-max-saved (point-max))
+          (point-min-saved (point-min))
+          (original-buffer (current-buffer)))
       (gpt-elisp-edit--api-call model selected-text instruction
+                                (cl-function (lambda (&key data &allow-other-keys)
+                                               (let ((choice (aref (cdr (assoc 'choices data)) 0)))
+                                                 (with-current-buffer gpt-current-buffer  ; Switch to the original buffer
+                                                   (if used-region
+                                                       (delete-region region-beginning-saved region-end-saved)
+                                                     (delete-region point-min-saved point-max-saved))
+                                                   (insert (concat (cdr (assoc 'text choice))))
+                                                   (if autosave
+                                                       (save-buffer))
+                                                   (goto-char (point-max)))))) 0))))
 
 (defun gpt-elisp-edit-code (instruction)
   (interactive "sInstruction: ")
@@ -96,6 +97,6 @@
   (interactive "sInstruction: ")
   (if (derived-mode-p 'prog-mode)
       (gpt-elisp-edit-generic "code-davinci-edit-001" instruction t)
-      (gpt-elisp-edit-generic "text-davinci-edit-001" instruction t)))
+    (gpt-elisp-edit-generic "text-davinci-edit-001" instruction t)))
 
 (provide 'gpt-elisp)
