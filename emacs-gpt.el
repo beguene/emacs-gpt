@@ -26,9 +26,14 @@
 
 (require 'request)
 
-(defun openai-call-edit (model input instruction callback &optional temperature)
+(defcustom gpt-elisp-edit-api-key-getter (lambda () "sk-XXX")
+  "API key for OpenAI"
+  :type 'function
+  :group 'gpt-elisp-edit)
+
+(defun gpt-elisp-edit--api-call (model input instruction callback &optional temperature)
   "Call the OpenAI API with MODEL and QUERY"
-  (let* ((api-key "sk-XXX")
+  (let* ((api-key (funcall gpt-elisp-edit-api-key-getter))
          (url "https://api.openai.com/v1/edits")
          (headers `(("Content-Type" . "application/json")
                     ("Authorization" . ,(concat "Bearer " api-key))))
@@ -48,7 +53,6 @@
              (lambda (&key error-thrown &allow-other-keys)
                (message "Error: %S" error-thrown))))))
 
-
 (defun gpt-elisp-edit-generic (model instruction &optional autosave)
   "Call the GPT-3 command with the selected text or the region before the cursor."
   (if (not (minibufferp))
@@ -63,7 +67,6 @@
         (point-max-saved (point-max))
         (point-min-saved (point-min))
         (original-buffer (current-buffer)))
-    (openai-call-edit model selected-text instruction
                       (cl-function (lambda (&key data &allow-other-keys)
                                    (let ((choice (aref (cdr (assoc 'choices data)) 0)))
                                      (with-current-buffer gpt-current-buffer  ; Switch to the original buffer
@@ -74,6 +77,7 @@
                                          (if autosave
                                              (save-buffer))
                                          (goto-char (point-max)))))) 0))))
+      (gpt-elisp-edit--api-call model selected-text instruction
 
 (defun gpt-elisp-edit-code (instruction)
   (interactive "sInstruction: ")
