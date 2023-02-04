@@ -26,6 +26,11 @@
 
 (require 'request)
 
+(defgroup gpt-elisp-edit nil
+  "gpt-elisp.el custom settings"
+  :group 'gpt-elisp-edit
+  :prefix "gpt-elisp-edit-")
+
 (defcustom gpt-elisp-edit-api-key-getter (lambda () "sk-XXX")
   "API key for OpenAI"
   :type 'function
@@ -92,3 +97,5 @@
   (if (derived-mode-p 'prog-mode)
       (gpt-elisp-edit-generic "code-davinci-edit-001" instruction t)
       (gpt-elisp-edit-generic "text-davinci-edit-001" instruction t)))
+
+(provide 'gpt-elisp)
